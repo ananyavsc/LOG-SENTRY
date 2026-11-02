@@ -17,16 +17,16 @@ def detect_bruteforce(events, threshold=5, window_seconds=60):
         failures.sort(key=lambda e: e["timestamp"])
 
         start = 0
-        alert_made = False
+        best = None  # the biggest suspicious window found for this IP
         for end in range(len(failures)):
             # Move the start forward until the window is small enough
             while failures[end]["timestamp"] - failures[start]["timestamp"] > window:
                 start += 1
 
             count = end - start + 1
-            if count >= threshold and not alert_made:
+            if count >= threshold and (best is None or count > best["attempts"]):
                 evidence = failures[start:end + 1]
-                alerts.append({
+                best = {
                     "rule": "Repeated failed logins",
                     "ip": ip,
                     "attempts": count,
@@ -34,15 +34,17 @@ def detect_bruteforce(events, threshold=5, window_seconds=60):
                     "last_seen": evidence[-1]["timestamp"],
                     "users_tried": sorted(set(e["user"] for e in evidence)),
                     "evidence": [e["raw"] for e in evidence],
-                })
-                alert_made = True  # one alert per IP for now
+                }
+
+        if best is not None:
+            alerts.append(best)
 
     return alerts
 
 
 if __name__ == "__main__":
     events, malformed, blank_count = parse_file("data/sample_logs/auth_sample.log")
-    alerts = detect_bruteforce(events, threshold=8, window_seconds=60)
+    alerts = detect_bruteforce(events, threshold=5, window_seconds=60)
 
     print("Alerts found:", len(alerts))
     for alert in alerts:
