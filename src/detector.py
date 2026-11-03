@@ -44,7 +44,7 @@ def detect_bruteforce(events, threshold=5, window_seconds=60):
 
 if __name__ == "__main__":
     events, malformed, blank_count = parse_file("data/sample_logs/auth_sample.log")
-    alerts = detect_bruteforce(events, threshold=8, window_seconds=60)
+    alerts = detect_bruteforce(events, threshold=5, window_seconds=60)
 
     print("Alerts found:", len(alerts))
     for alert in alerts:
