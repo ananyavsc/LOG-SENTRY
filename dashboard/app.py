@@ -26,14 +26,32 @@ alerts = [dict(r) for r in conn.execute(
 )]
 conn.close()
 
-# Summary numbers
-failed_count = sum(1 for e in events if e["status"] == "Failed")
-col1, col2, col3 = st.columns(3)
-col1.metric("Total events", len(events))
-col2.metric("Failed logins", failed_count)
-col3.metric("Alerts", len(alerts))
+# ---------- Sidebar filters ----------
+st.sidebar.header("Filters")
 
-# Alerts with evidence
+status_options = sorted(set(e["status"] for e in events))
+ip_options = sorted(set(e["ip"] for e in events))
+user_options = sorted(set(e["user"] for e in events))
+
+selected_status = st.sidebar.multiselect("Status", status_options, default=status_options)
+selected_ips = st.sidebar.multiselect("IP address", ip_options, default=ip_options)
+selected_users = st.sidebar.multiselect("User", user_options, default=user_options)
+
+filtered_events = [
+    e for e in events
+    if e["status"] in selected_status
+    and e["ip"] in selected_ips
+    and e["user"] in selected_users
+]
+
+# ---------- Summary numbers (follow the filters) ----------
+failed_count = sum(1 for e in filtered_events if e["status"] == "Failed")
+col1, col2, col3 = st.columns(3)
+col1.metric("Events shown", len(filtered_events))
+col2.metric("Failed logins shown", failed_count)
+col3.metric("Alerts (all)", len(alerts))
+
+# ---------- Alerts with evidence ----------
 st.header("Alerts")
 if not alerts:
     st.info("No alerts found.")
@@ -45,6 +63,9 @@ for alert in alerts:
         st.write("**Evidence:**")
         st.code("\n".join(json.loads(alert["evidence"])))
 
-# All events
-st.header("All events")
-st.dataframe(events, use_container_width=True)
+# ---------- Events table ----------
+st.header("Events")
+if filtered_events:
+    st.dataframe(filtered_events, use_container_width=True)
+else:
+    st.warning("No events match the selected filters.")
