@@ -1,8 +1,13 @@
 import json
 import os
 import sqlite3
+import sys
 
 import streamlit as st
+
+# Let the dashboard import our code from the src folder
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
+from report import build_report
 
 DB_PATH = "logsentry.db"
 
@@ -50,6 +55,14 @@ col1, col2, col3 = st.columns(3)
 col1.metric("Events shown", len(filtered_events))
 col2.metric("Failed logins shown", failed_count)
 col3.metric("Alerts (all)", len(alerts))
+
+# ---------- Download report ----------
+st.download_button(
+    label="Download incident report",
+    data=build_report(alerts),
+    file_name="incident_report.md",
+    mime="text/markdown",
+)
 
 # ---------- Alerts with evidence ----------
 st.header("Alerts")
